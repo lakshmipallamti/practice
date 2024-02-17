@@ -1,0 +1,14 @@
+---
+- hosts: localhost
+  gather_facts: yes
+  tasks:
+    - name: finding file in playbooks directories
+      command: "ls /root/playbooks/abc"
+      ignore_errors: yes
+    - name: finding files in playbooks
+      command: "ls /root/playbooks/nfs-roles"
+
+
+
+# even if one task fails it doestn't stop execution because of "ignore_errors: yes" parameters, it will go to second task and executes.
+

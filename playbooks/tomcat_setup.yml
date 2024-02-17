@@ -1,0 +1,49 @@
+---
+- hosts: localhost
+  become: yes
+  gather_facts: no
+  vars_files:
+    - tomcat_vars.yml
+  tasks:
+    - name: installing java
+      yum:
+        name: java-1.8.0-openjdk
+        state: present
+    - name: creating user
+      user:
+        name: tomcat
+        state: present
+    - name: downloading and extracting tomcat
+      unarchive:
+        src: "{{tomcat_url}}"
+        dest: /opt
+        remote_src: yes
+    - name: rename tomcat folder name
+      command: mv /opt/{{tomcat_pkg}} /opt/tomcat
+    - name: giving permissions for tomcat folder
+      file:
+        src: tomcat
+        dest: /opt/tomcat
+        mode: 0755
+        recurse: yes
+        owner: tomcat
+        group: tomcat
+    - name: creating link to start and shutdown tomcat server
+      file:
+        src: "{{item.tomcat_state}}"
+        dest: "{{item.tomcat_status}}"
+        state: link
+      loop:
+        - {tomcat_state: "/opt/tomcat/bin/startup.sh" , tomcat_status: "/usr/local/bin/tomcatup"}
+        - {tomcat_state: "/opt/tomcat/bin/shutdown.sh" , tomcat_status: "/usr/local/bin/tomcatdown"}
+      notify: start tomcat server
+    - name: changing port number for tomcat server
+      copy:
+        src: server.xml.j2
+        dest: /opt/tomcat/conf/server.xml
+      notify: restart tomcat server
+  handlers:
+    - name: start tomcat server
+      command: /usr/local/bin/tomcatup
+    - name: restart tomcat server
+      shell: /usr/local/bin/tomcatdown; nohup /usr/local/bin/tomcatup
